@@ -1,0 +1,14 @@
+name: Deploy App3
+
+on:
+  push:
+    paths:
+      - 'app3/**' # Trigger only if files in app1 change
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Display message
+        run: echo "Deploy for App3 ran"
