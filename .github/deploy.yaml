@@ -1,0 +1,52 @@
+name: Selective App Deployment
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  detect-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Required to get all history for comparing changes
+
+    - name: Get changed files
+      id: changed-files
+      run: |
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          # For pull requests, compare with the base branch
+          echo "CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}..HEAD | tr '\n' ' ')" >> $GITHUB_ENV
+        else
+          # For pushes, compare with the previous commit
+          echo "CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | tr '\n' ' ')" >> $GITHUB_ENV
+        fi
+
+    - name: Check app changes and deploy
+      run: |
+        # Function to check if directory has changes
+        check_and_deploy() {
+          local app_dir=$1
+          if echo "$CHANGED_FILES" | grep -q "^$app_dir/" || echo "$CHANGED_FILES" | grep -q " $app_dir/"; then
+            echo "Changes detected in $app_dir"
+            cd $app_dir
+            # Add your deployment steps here
+            echo "Deploying $app_dir..."
+            # Example deployment steps:
+            # npm install
+            # npm run build
+            # aws s3 sync ./build s3://your-bucket/$app_dir
+            cd ..
+          else
+            echo "No changes in $app_dir, skipping deployment"
+          fi
+        }
+
+        # Check and deploy each app
+        check_and_deploy "app1"
+        check_and_deploy "app2"
+        check_and_deploy "app3"
